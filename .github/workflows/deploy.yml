@@ -27,10 +27,10 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
+      - name: Enable Corepack and setup pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.12.0 --activate
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
