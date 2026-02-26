@@ -1,0 +1,338 @@
+[
+  {
+    "id": "hypoglycemia",
+    "title": "低血糖",
+    "subtitle": "意識が朦朧とする患者",
+    "difficulty": "beginner",
+    "category": "endocrine",
+    "timeLimit": 300,
+    "estimatedMinutes": 5,
+    "description": "糖尿病患者が朝食を抜いてインスリンを打ち、病室で冷や汗をかいている。",
+    "patient": {
+      "name": "田中 花子",
+      "age": 68,
+      "gender": "female",
+      "chiefComplaint": "気分が悪い、冷や汗が出る",
+      "medicalHistory": ["2型糖尿病（インスリン治療中）", "高血圧"],
+      "currentOrders": "インスリン グラルギン 10単位 就寝前、メトホルミン 500mg 朝夕食後",
+      "ward": "内科病棟 302号室"
+    },
+    "initialState": {
+      "consciousness": 1,
+      "bloodPressure": { "systolic": 98, "diastolic": 62 },
+      "heartRate": 108,
+      "spO2": 97,
+      "bloodGlucose": null,
+      "temperature": 36.2,
+      "respiratoryRate": 18,
+      "appearance": "anxious"
+    },
+    "phases": [
+      {
+        "id": "phase1",
+        "description": "患者が冷や汗をかき、ぼんやりしている。「気分が悪い」と訴えている。",
+        "urgencyHint": "早急な対応が必要です",
+        "timeLimit": 120,
+        "availableActionIds": [
+          "measure_bp", "measure_glucose", "measure_spo2", "measure_temp",
+          "assess_pupils", "auscultate", "ask_symptoms", "ask_history",
+          "call_doctor", "call_senior_nurse", "wait_and_see"
+        ],
+        "criticalActions": ["measure_glucose"],
+        "nextPhase": {
+          "onCriticalAction": "phase2_correct",
+          "onTimeout": "phase_deteriorate",
+          "onWaitAndSee": "phase_deteriorate"
+        }
+      },
+      {
+        "id": "phase2_correct",
+        "description": "血糖値45mg/dLを確認。低血糖と確定診断。次の処置を選択してください。",
+        "urgencyHint": "血糖値が危険域です。迅速に処置してください",
+        "timeLimit": 90,
+        "availableActionIds": [
+          "give_glucose_oral", "secure_iv_route", "call_doctor", "call_senior_nurse",
+          "measure_glucose", "measure_bp", "wait_and_see"
+        ],
+        "criticalActions": ["give_glucose_oral", "secure_iv_route"],
+        "nextPhase": {
+          "onCriticalAction": "phase3_recovery",
+          "onTimeout": "phase_critical",
+          "onWaitAndSee": "phase_critical"
+        }
+      },
+      {
+        "id": "phase3_recovery",
+        "description": "処置後、患者の状態が改善しています。経過観察と報告を行いましょう。",
+        "urgencyHint": null,
+        "timeLimit": 60,
+        "availableActionIds": [
+          "measure_glucose", "measure_bp", "report_sbar",
+          "call_doctor", "document_action"
+        ],
+        "criticalActions": ["report_sbar"],
+        "nextPhase": {
+          "onCriticalAction": "phase_success",
+          "onTimeout": "phase_success"
+        }
+      },
+      {
+        "id": "phase_deteriorate",
+        "description": "対応が遅れています。患者の意識が低下しています。",
+        "urgencyHint": "緊急事態！",
+        "timeLimit": 60,
+        "availableActionIds": [
+          "measure_glucose", "call_doctor", "call_senior_nurse",
+          "give_glucose_oral", "secure_iv_route"
+        ],
+        "criticalActions": ["call_doctor", "secure_iv_route"],
+        "nextPhase": {
+          "onCriticalAction": "phase_critical_recovery",
+          "onTimeout": "phase_fail"
+        }
+      },
+      {
+        "id": "phase_critical",
+        "description": "患者が痙攣を起こしています！",
+        "urgencyHint": "最重篤状態！",
+        "timeLimit": 30,
+        "availableActionIds": ["call_doctor", "secure_iv_route", "call_code_blue"],
+        "criticalActions": ["call_doctor", "call_code_blue"],
+        "nextPhase": {
+          "onCriticalAction": "phase_fail",
+          "onTimeout": "phase_fail"
+        }
+      },
+      {
+        "id": "phase_critical_recovery",
+        "description": "医師が到着し、処置が行われました。患者は安定しつつあります。",
+        "urgencyHint": null,
+        "timeLimit": 60,
+        "availableActionIds": ["measure_glucose", "measure_bp", "report_sbar", "document_action"],
+        "criticalActions": ["report_sbar"],
+        "nextPhase": {
+          "onCriticalAction": "phase_partial_success",
+          "onTimeout": "phase_partial_success"
+        }
+      },
+      { "id": "phase_success",    "description": "success",         "timeLimit": 0, "availableActionIds": [], "criticalActions": [], "nextPhase": {} },
+      { "id": "phase_partial_success", "description": "partial_success", "timeLimit": 0, "availableActionIds": [], "criticalActions": [], "nextPhase": {} },
+      { "id": "phase_fail",       "description": "fail",            "timeLimit": 0, "availableActionIds": [], "criticalActions": [], "nextPhase": {} }
+    ],
+    "actions": [
+      { "id": "measure_bp",       "label": "血圧測定",         "category": "measure",  "icon": "gauge",        "isOptimal": false, "stateChange": { "bloodPressure": { "systolic": 98, "diastolic": 62 } }, "feedback": "血圧98/62mmHg。低めですが、今は血糖確認が優先です。", "score": 5, "timeRequired": 5 },
+      { "id": "measure_glucose",  "label": "血糖測定",         "category": "measure",  "icon": "droplet",      "isOptimal": true,  "stateChange": { "bloodGlucose": 45 }, "feedback": "血糖値45mg/dL！低血糖と確定。直ちに処置が必要です。", "score": 20, "timeRequired": 3 },
+      { "id": "measure_spo2",     "label": "SpO₂測定",        "category": "measure",  "icon": "activity",     "isOptimal": false, "stateChange": { "spO2": 97 }, "feedback": "SpO₂97%。呼吸状態は安定しています。", "score": 5, "timeRequired": 2 },
+      { "id": "measure_temp",     "label": "体温測定",         "category": "measure",  "icon": "thermometer",  "isOptimal": false, "stateChange": { "temperature": 36.2 }, "feedback": "体温36.2℃。発熱なし。今は他の確認を優先しましょう。", "score": 3, "timeRequired": 3 },
+      { "id": "assess_pupils",    "label": "瞳孔確認",         "category": "examine",  "icon": "eye",          "isOptimal": false, "stateChange": {}, "feedback": "瞳孔3mm/3mm、対光反射あり。脳血管障害は否定的ですが、血糖確認が先決です。", "score": 5, "timeRequired": 2 },
+      { "id": "auscultate",       "label": "聴診（心肺）",     "category": "examine",  "icon": "stethoscope",  "isOptimal": false, "stateChange": {}, "feedback": "心音・呼吸音に異常なし。今の症状には直結しません。", "score": 3, "timeRequired": 5 },
+      { "id": "ask_symptoms",     "label": "症状を聞く",       "category": "interview","icon": "message-circle","isOptimal": false, "stateChange": {}, "feedback": "「朝食を食べていない」「インスリンを打った後から気分が悪い」と訴えています。", "score": 8, "timeRequired": 3 },
+      { "id": "ask_history",      "label": "既往歴を確認",     "category": "interview","icon": "file-text",    "isOptimal": false, "stateChange": {}, "feedback": "糖尿病でインスリン治療中。以前も低血糖エピソードあり。", "score": 5, "timeRequired": 3 },
+      { "id": "give_glucose_oral","label": "ブドウ糖投与（経口）","category": "treat", "icon": "pill",         "isOptimal": true,  "stateChange": { "bloodGlucose": 85, "consciousness": 0, "appearance": "normal", "heartRate": 88 }, "feedback": "ブドウ糖10gを経口投与。15分後に血糖値が回復してきました。", "score": 25, "timeRequired": 5 },
+      { "id": "secure_iv_route",  "label": "ルート確保（点滴）","category": "treat",  "icon": "zap",          "isOptimal": true,  "stateChange": { "bloodGlucose": 90, "consciousness": 0, "appearance": "normal", "heartRate": 85 }, "feedback": "静脈ルート確保し、50%ブドウ糖液20mLを静注。意識が回復しています。", "score": 25, "timeRequired": 10 },
+      { "id": "call_doctor",      "label": "医師を呼ぶ",       "category": "call",     "icon": "phone",        "isOptimal": false, "stateChange": {}, "feedback": "医師に連絡しました。「まず血糖を測って」と指示がありました。", "score": 10, "timeRequired": 2 },
+      { "id": "call_senior_nurse","label": "先輩看護師を呼ぶ", "category": "call",     "icon": "users",        "isOptimal": false, "stateChange": {}, "feedback": "先輩看護師が来ました。「血糖測定した？」と確認されました。", "score": 8, "timeRequired": 2 },
+      { "id": "call_code_blue",   "label": "コードブルー発動", "category": "call",     "icon": "alert-triangle","isOptimal": false,"stateChange": {}, "feedback": "コードブルーを発動しました。チームが集まっています。", "score": 15, "timeRequired": 1 },
+      { "id": "report_sbar",      "label": "SBAR報告",         "category": "report",   "icon": "clipboard",    "isOptimal": true,  "stateChange": {}, "feedback": "適切なSBAR報告ができました。状況・背景・評価・提案を的確に伝えました。", "score": 15, "timeRequired": 5 },
+      { "id": "document_action",  "label": "記録する",         "category": "report",   "icon": "edit",         "isOptimal": false, "stateChange": {}, "feedback": "行動を記録しました。正確な記録は医療安全に重要です。", "score": 5, "timeRequired": 5 },
+      { "id": "wait_and_see",     "label": "様子を見る",       "category": "wait",     "icon": "clock",        "isOptimal": false, "stateChange": { "bloodGlucose": 35, "consciousness": 10, "appearance": "pale", "heartRate": 120 }, "feedback": "様子を見ている間に患者の状態が悪化しました！低血糖は迅速な対応が必要です。", "score": -10, "timeRequired": 30 }
+    ],
+    "explanation": {
+      "summary": "低血糖（血糖値70mg/dL未満）は、インスリン過剰投与や食事摂取不足により発生します。",
+      "keyPoints": [
+        "低血糖の三徴候：冷や汗・動悸・意識障害（Whippleの三徴）",
+        "血糖測定は最優先アクション。症状だけでは確定診断できない",
+        "意識がある場合は経口ブドウ糖投与、意識障害がある場合は静脈内投与",
+        "処置後15分で再測定が必要（リバウンド低血糖の確認）",
+        "原因検索（インスリン量・食事量・運動量）と再発防止が重要"
+      ],
+      "evidence": "日本糖尿病学会「糖尿病診療ガイドライン2024」より"
+    }
+  },
+  {
+    "id": "pulmonary_embolism",
+    "title": "肺塞栓",
+    "subtitle": "突然の呼吸困難",
+    "difficulty": "intermediate",
+    "category": "respiratory",
+    "timeLimit": 240,
+    "estimatedMinutes": 7,
+    "description": "術後3日目の患者が突然の呼吸困難と胸痛を訴えている。",
+    "patient": {
+      "name": "佐藤 一郎",
+      "age": 55,
+      "gender": "male",
+      "chiefComplaint": "突然の息苦しさ、胸が痛い",
+      "medicalHistory": ["大腸癌（術後3日目）", "高血圧", "肥満"],
+      "currentOrders": "術後管理中、抗凝固療法なし",
+      "ward": "外科病棟 415号室"
+    },
+    "initialState": {
+      "consciousness": 0,
+      "bloodPressure": { "systolic": 90, "diastolic": 55 },
+      "heartRate": 125,
+      "spO2": 88,
+      "bloodGlucose": null,
+      "temperature": 37.1,
+      "respiratoryRate": 28,
+      "appearance": "critical"
+    },
+    "phases": [
+      {
+        "id": "phase1",
+        "description": "術後3日目の患者が「突然息が苦しい」「胸が痛い」と訴えている。顔色不良、頻呼吸あり。",
+        "urgencyHint": "緊急度：高",
+        "timeLimit": 90,
+        "availableActionIds": [
+          "measure_spo2_pe", "measure_bp_pe", "auscultate_pe", "assess_legs",
+          "give_oxygen", "call_doctor_pe", "call_code_blue_pe", "ask_symptoms_pe",
+          "measure_temp_pe", "wait_and_see_pe"
+        ],
+        "criticalActions": ["measure_spo2_pe", "give_oxygen", "call_doctor_pe"],
+        "nextPhase": {
+          "onCriticalAction": "phase2_pe",
+          "onTimeout": "phase_fail_pe",
+          "onWaitAndSee": "phase_fail_pe"
+        }
+      },
+      {
+        "id": "phase2_pe",
+        "description": "SpO₂88%、頻脈125回/分、血圧低下を確認。肺塞栓を疑い、医師が到着。次の対応を選択してください。",
+        "urgencyHint": "医師の指示に従い迅速に動く",
+        "timeLimit": 90,
+        "availableActionIds": [
+          "secure_iv_pe", "ecg_monitoring", "report_sbar_pe",
+          "call_code_blue_pe", "prepare_ct", "document_action_pe"
+        ],
+        "criticalActions": ["secure_iv_pe", "ecg_monitoring", "report_sbar_pe"],
+        "nextPhase": {
+          "onCriticalAction": "phase_success_pe",
+          "onTimeout": "phase_partial_pe"
+        }
+      },
+      { "id": "phase_success_pe",  "description": "success",         "timeLimit": 0, "availableActionIds": [], "criticalActions": [], "nextPhase": {} },
+      { "id": "phase_partial_pe",  "description": "partial_success", "timeLimit": 0, "availableActionIds": [], "criticalActions": [], "nextPhase": {} },
+      { "id": "phase_fail_pe",     "description": "fail",            "timeLimit": 0, "availableActionIds": [], "criticalActions": [], "nextPhase": {} }
+    ],
+    "actions": [
+      { "id": "measure_spo2_pe",   "label": "SpO₂測定",        "category": "measure",  "icon": "activity",     "isOptimal": true,  "stateChange": { "spO2": 88 }, "feedback": "SpO₂88%！重篤な低酸素状態です。直ちに酸素投与が必要です。", "score": 20, "timeRequired": 2 },
+      { "id": "measure_bp_pe",     "label": "血圧測定",         "category": "measure",  "icon": "gauge",        "isOptimal": true,  "stateChange": { "bloodPressure": { "systolic": 90, "diastolic": 55 } }, "feedback": "血圧90/55mmHg。ショック状態に近い。", "score": 15, "timeRequired": 5 },
+      { "id": "auscultate_pe",     "label": "聴診",             "category": "examine",  "icon": "stethoscope",  "isOptimal": false, "stateChange": {}, "feedback": "呼吸音は左右差なし。心音は頻拍。肺塞栓では聴診所見が乏しいことが多い。", "score": 8, "timeRequired": 5 },
+      { "id": "assess_legs",       "label": "下肢を確認",       "category": "examine",  "icon": "eye",          "isOptimal": true,  "stateChange": {}, "feedback": "左下腿に発赤・腫脹あり。DVT（深部静脈血栓症）の可能性！肺塞栓の原因として重要な所見です。", "score": 15, "timeRequired": 3 },
+      { "id": "give_oxygen",       "label": "酸素投与",         "category": "treat",    "icon": "wind",         "isOptimal": true,  "stateChange": { "spO2": 93, "appearance": "anxious" }, "feedback": "マスクで酸素10L/分投与。SpO₂が93%まで改善しました。", "score": 20, "timeRequired": 3 },
+      { "id": "call_doctor_pe",    "label": "医師を呼ぶ",       "category": "call",     "icon": "phone",        "isOptimal": true,  "stateChange": {}, "feedback": "医師を緊急コール。「肺塞栓疑い」と伝えました。", "score": 15, "timeRequired": 1 },
+      { "id": "call_code_blue_pe", "label": "コードブルー発動", "category": "call",     "icon": "alert-triangle","isOptimal": false,"stateChange": {}, "feedback": "コードブルー発動。チームが集結しています。", "score": 10, "timeRequired": 1 },
+      { "id": "ask_symptoms_pe",   "label": "症状を聞く",       "category": "interview","icon": "message-circle","isOptimal": false, "stateChange": {}, "feedback": "「急に息ができなくなった」「胸がズキズキする」。突然発症の呼吸困難・胸痛は肺塞栓の典型症状。", "score": 8, "timeRequired": 3 },
+      { "id": "measure_temp_pe",   "label": "体温測定",         "category": "measure",  "icon": "thermometer",  "isOptimal": false, "stateChange": {}, "feedback": "体温37.1℃。今は他の対応を優先すべきです。", "score": 2, "timeRequired": 3 },
+      { "id": "secure_iv_pe",      "label": "ルート確保",       "category": "treat",    "icon": "zap",          "isOptimal": true,  "stateChange": {}, "feedback": "静脈ルート確保完了。薬剤投与の準備ができました。", "score": 20, "timeRequired": 8 },
+      { "id": "ecg_monitoring",    "label": "心電図モニター装着","category": "measure", "icon": "activity",     "isOptimal": true,  "stateChange": {}, "feedback": "心電図装着。S1Q3T3パターンを確認。肺塞栓に特徴的な所見です。", "score": 15, "timeRequired": 5 },
+      { "id": "report_sbar_pe",    "label": "SBAR報告",         "category": "report",   "icon": "clipboard",    "isOptimal": true,  "stateChange": {}, "feedback": "的確なSBAR報告ができました。医師がCT造影検査をオーダーしました。", "score": 15, "timeRequired": 5 },
+      { "id": "prepare_ct",        "label": "CT検査の準備",     "category": "treat",    "icon": "monitor",      "isOptimal": false, "stateChange": {}, "feedback": "CT検査の準備を開始しました。造影CTで確定診断が可能です。", "score": 10, "timeRequired": 10 },
+      { "id": "document_action_pe","label": "記録する",         "category": "report",   "icon": "edit",         "isOptimal": false, "stateChange": {}, "feedback": "行動を記録しました。", "score": 5, "timeRequired": 5 },
+      { "id": "wait_and_see_pe",   "label": "様子を見る",       "category": "wait",     "icon": "clock",        "isOptimal": false, "stateChange": { "spO2": 82, "consciousness": 10, "appearance": "critical", "heartRate": 140 }, "feedback": "様子を見ている間にSpO₂がさらに低下！肺塞栓は時間との勝負です。", "score": -15, "timeRequired": 30 }
+    ],
+    "explanation": {
+      "summary": "肺塞栓症（PE）は深部静脈血栓が肺動脈を閉塞する致死的疾患。術後・長期臥床が主なリスク因子。",
+      "keyPoints": [
+        "典型症状：突然発症の呼吸困難・胸痛・頻脈・低酸素血症",
+        "術後・長期臥床患者では常にDVT/PEを念頭に",
+        "下肢の発赤・腫脹はDVTのサイン",
+        "まず酸素投与・バイタル安定化、次に確定診断（造影CT）",
+        "Wellsスコアで臨床的確率を評価する"
+      ],
+      "evidence": "日本循環器学会「肺血栓塞栓症診療ガイドライン2020」より"
+    }
+  },
+  {
+    "id": "myocardial_infarction",
+    "title": "心筋梗塞",
+    "subtitle": "激しい胸痛の患者",
+    "difficulty": "advanced",
+    "category": "cardiovascular",
+    "timeLimit": 180,
+    "estimatedMinutes": 8,
+    "description": "外来受診中の患者が突然の激しい胸痛を訴え、冷や汗をかいている。",
+    "patient": {
+      "name": "山田 太郎",
+      "age": 62,
+      "gender": "male",
+      "chiefComplaint": "胸が締め付けられるように痛い",
+      "medicalHistory": ["高血圧", "脂質異常症", "喫煙歴30年"],
+      "currentOrders": "外来診察待ち",
+      "ward": "外来待合室"
+    },
+    "initialState": {
+      "consciousness": 0,
+      "bloodPressure": { "systolic": 160, "diastolic": 95 },
+      "heartRate": 95,
+      "spO2": 95,
+      "bloodGlucose": null,
+      "temperature": 36.8,
+      "respiratoryRate": 22,
+      "appearance": "anxious"
+    },
+    "phases": [
+      {
+        "id": "phase1_mi",
+        "description": "外来待合室で患者が突然「胸が締め付けられる」と訴え、顔面蒼白・冷や汗あり。",
+        "urgencyHint": "緊急度：最高",
+        "timeLimit": 60,
+        "availableActionIds": [
+          "measure_bp_mi", "measure_spo2_mi", "ecg_12lead", "ask_symptoms_mi",
+          "give_oxygen_mi", "call_doctor_mi", "call_code_blue_mi", "wait_and_see_mi"
+        ],
+        "criticalActions": ["ecg_12lead", "call_doctor_mi"],
+        "nextPhase": {
+          "onCriticalAction": "phase2_mi",
+          "onTimeout": "phase_fail_mi",
+          "onWaitAndSee": "phase_fail_mi"
+        }
+      },
+      {
+        "id": "phase2_mi",
+        "description": "12誘導心電図でST上昇を確認。AMI（急性心筋梗塞）の疑い。緊急処置を開始してください。",
+        "urgencyHint": "Door-to-Balloon時間を意識！",
+        "timeLimit": 90,
+        "availableActionIds": [
+          "secure_iv_mi", "give_aspirin", "give_nitroglycerin",
+          "report_sbar_mi", "prepare_cath", "call_code_blue_mi", "document_mi"
+        ],
+        "criticalActions": ["secure_iv_mi", "give_aspirin", "report_sbar_mi"],
+        "nextPhase": {
+          "onCriticalAction": "phase_success_mi",
+          "onTimeout": "phase_partial_mi"
+        }
+      },
+      { "id": "phase_success_mi",  "description": "success",         "timeLimit": 0, "availableActionIds": [], "criticalActions": [], "nextPhase": {} },
+      { "id": "phase_partial_mi",  "description": "partial_success", "timeLimit": 0, "availableActionIds": [], "criticalActions": [], "nextPhase": {} },
+      { "id": "phase_fail_mi",     "description": "fail",            "timeLimit": 0, "availableActionIds": [], "criticalActions": [], "nextPhase": {} }
+    ],
+    "actions": [
+      { "id": "measure_bp_mi",     "label": "血圧測定",         "category": "measure",  "icon": "gauge",        "isOptimal": true,  "stateChange": { "bloodPressure": { "systolic": 160, "diastolic": 95 } }, "feedback": "血圧160/95mmHg。高血圧あり。", "score": 10, "timeRequired": 5 },
+      { "id": "measure_spo2_mi",   "label": "SpO₂測定",        "category": "measure",  "icon": "activity",     "isOptimal": true,  "stateChange": { "spO2": 95 }, "feedback": "SpO₂95%。軽度低下。酸素投与を検討。", "score": 10, "timeRequired": 2 },
+      { "id": "ecg_12lead",        "label": "12誘導心電図",     "category": "measure",  "icon": "heart",        "isOptimal": true,  "stateChange": {}, "feedback": "II・III・aVFでST上昇！下壁心筋梗塞の疑い。緊急対応が必要です。", "score": 30, "timeRequired": 5 },
+      { "id": "ask_symptoms_mi",   "label": "症状を聞く",       "category": "interview","icon": "message-circle","isOptimal": false, "stateChange": {}, "feedback": "「30分前から胸が締め付けられる」「左腕にも痛みが広がる」。AMIの典型症状です。", "score": 8, "timeRequired": 3 },
+      { "id": "give_oxygen_mi",    "label": "酸素投与",         "category": "treat",    "icon": "wind",         "isOptimal": false, "stateChange": { "spO2": 98 }, "feedback": "酸素投与開始。ただしSpO₂が94%以上なら過剰投与に注意。", "score": 8, "timeRequired": 3 },
+      { "id": "call_doctor_mi",    "label": "医師を緊急コール", "category": "call",     "icon": "phone",        "isOptimal": true,  "stateChange": {}, "feedback": "医師を緊急コール。「胸痛・ST上昇の疑い」と報告しました。", "score": 20, "timeRequired": 1 },
+      { "id": "call_code_blue_mi", "label": "コードブルー発動", "category": "call",     "icon": "alert-triangle","isOptimal": false,"stateChange": {}, "feedback": "コードブルー発動。チームが集結。", "score": 10, "timeRequired": 1 },
+      { "id": "secure_iv_mi",      "label": "ルート確保",       "category": "treat",    "icon": "zap",          "isOptimal": true,  "stateChange": {}, "feedback": "静脈ルート確保完了。緊急薬剤投与の準備ができました。", "score": 20, "timeRequired": 8 },
+      { "id": "give_aspirin",      "label": "アスピリン投与",   "category": "treat",    "icon": "pill",         "isOptimal": true,  "stateChange": {}, "feedback": "アスピリン162-325mg投与。血小板凝集を抑制し、梗塞拡大を防ぎます。", "score": 25, "timeRequired": 3 },
+      { "id": "give_nitroglycerin","label": "ニトログリセリン投与","category": "treat", "icon": "pill",         "isOptimal": false, "stateChange": { "bloodPressure": { "systolic": 140, "diastolic": 85 } }, "feedback": "ニトログリセリン舌下投与。血圧低下に注意が必要です。", "score": 10, "timeRequired": 3 },
+      { "id": "report_sbar_mi",    "label": "SBAR報告",         "category": "report",   "icon": "clipboard",    "isOptimal": true,  "stateChange": {}, "feedback": "的確なSBAR報告。医師が緊急カテーテル検査をオーダーしました。", "score": 20, "timeRequired": 5 },
+      { "id": "prepare_cath",      "label": "カテーテル室準備", "category": "treat",    "icon": "monitor",      "isOptimal": false, "stateChange": {}, "feedback": "カテーテル室に連絡。Door-to-Balloon時間短縮に貢献しました。", "score": 10, "timeRequired": 5 },
+      { "id": "document_mi",       "label": "記録する",         "category": "report",   "icon": "edit",         "isOptimal": false, "stateChange": {}, "feedback": "行動を記録しました。", "score": 5, "timeRequired": 5 },
+      { "id": "wait_and_see_mi",   "label": "様子を見る",       "category": "wait",     "icon": "clock",        "isOptimal": false, "stateChange": { "consciousness": 10, "appearance": "critical", "heartRate": 120, "bloodPressure": { "systolic": 80, "diastolic": 50 } }, "feedback": "様子を見ている間に患者がショック状態に！AMIは一刻を争います。", "score": -20, "timeRequired": 30 }
+    ],
+    "explanation": {
+      "summary": "急性心筋梗塞（AMI）は冠動脈閉塞による心筋壊死。Door-to-Balloon時間90分以内が目標。",
+      "keyPoints": [
+        "典型症状：胸部絞扼感・放散痛（左腕・顎）・冷や汗・呼吸困難",
+        "12誘導心電図が最重要検査。ST上昇・新規LBBB = 緊急PCI適応",
+        "MONA療法：Morphine・Oxygen・Nitrate・Aspirin",
+        "Door-to-Balloon時間：来院から90分以内のPCIが目標",
+        "看護師の迅速な初期評価と報告が救命の鍵"
+      ],
+      "evidence": "日本循環器学会「急性冠症候群ガイドライン2023」より"
+    }
+  }
+]
