@@ -27,13 +27,11 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Enable Corepack and setup pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@9.12.0 --activate
+      - name: Install pnpm
+        run: npm install -g pnpm@9.12.0
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build Expo web
         run: npx expo export --platform web --output-dir dist
