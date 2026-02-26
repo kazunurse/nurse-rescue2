@@ -83,6 +83,8 @@ const config: ExpoConfig = {
     bundler: "metro",
     output: "static",
     favicon: "./assets/images/favicon.png",
+    // GitHub Pages: リポジトリ名をbasePathに設定
+    baseUrl: "/nurse-rescue2",
   },
   plugins: [
     "expo-router",
