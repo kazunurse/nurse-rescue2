@@ -1,243 +1,319 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
+import { View, Text, FlatList, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/use-colors';
-import type { Difficulty } from '@/types/game';
+import type { Difficulty, Category } from '@/types/game';
+import { CATEGORY_LABELS, DIFFICULTY_LABELS } from '@/types/game';
 
-const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  beginner: '初級',
-  intermediate: '中級',
-  advanced: '上級',
+const DIFFICULTY_COLORS: Record<Difficulty, string> = {
+  beginner:     '#2E9E6B',
+  intermediate: '#E8A020',
+  advanced:     '#D94040',
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  endocrine: '内分泌',
-  respiratory: '呼吸器',
-  cardiovascular: '循環器',
-  neurological: '神経',
-  other: 'その他',
+const CATEGORY_ICONS: Record<Category, string> = {
+  endocrine:     '🩸',
+  respiratory:   '🫁',
+  cardiovascular:'❤️',
+  neurological:  '🧠',
+  infection:     '🦠',
+  trauma:        '🩹',
+  allergy:       '⚠️',
+  other:         '📋',
 };
 
-const CATEGORY_EMOJIS: Record<string, string> = {
-  endocrine: '🩸',
-  respiratory: '🫁',
-  cardiovascular: '❤️',
-  neurological: '🧠',
-  other: '🏥',
-};
-
-type FilterType = 'all' | Difficulty;
+type FilterMode = 'difficulty' | 'category';
 
 export default function ScenariosScreen() {
   const router = useRouter();
   const colors = useColors();
   const { scenarios, history } = useGame();
-  const [filter, setFilter] = useState<FilterType>('all');
 
-  const filtered = filter === 'all' ? scenarios : scenarios.filter(s => s.difficulty === filter);
+  const [filterMode, setFilterMode] = useState<FilterMode>('difficulty');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
-  const getScenarioStats = (scenarioId: string) => {
+  const availableCategories = Array.from(new Set(scenarios.map(s => s.category))) as Category[];
+  const difficulties: Difficulty[] = ['beginner', 'intermediate', 'advanced'];
+
+  const filteredScenarios = scenarios.filter(s => {
+    if (filterMode === 'difficulty' && selectedDifficulty) return s.difficulty === selectedDifficulty;
+    if (filterMode === 'category' && selectedCategory) return s.category === selectedCategory;
+    return true;
+  });
+
+  const getPlayCount = (scenarioId: string) =>
+    history.filter(h => h.scenarioId === scenarioId).length;
+
+  const getBestScore = (scenarioId: string) => {
     const records = history.filter(h => h.scenarioId === scenarioId);
-    const bestScore = records.length > 0 ? Math.max(...records.map(r => r.totalScore)) : 0;
-    const clears = records.filter(r => r.result === 'success').length;
-    return { plays: records.length, bestScore, clears };
+    if (records.length === 0) return null;
+    return Math.max(...records.map(r => r.totalScore));
   };
 
-  const filters: { key: FilterType; label: string }[] = [
-    { key: 'all', label: 'すべて' },
-    { key: 'beginner', label: '初級' },
-    { key: 'intermediate', label: '中級' },
-    { key: 'advanced', label: '上級' },
-  ];
+  const getClearCount = (scenarioId: string) =>
+    history.filter(h => h.scenarioId === scenarioId && h.result === 'success').length;
 
   return (
     <ScreenContainer containerClassName="bg-background">
-      {/* ヘッダー */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>シナリオ選択</Text>
-        <Text style={[styles.headerSubtitle, { color: colors.muted }]}>
-          {scenarios.length}つのシナリオから学習できます
-        </Text>
-
-        {/* フィルター */}
-        <View style={styles.filterRow}>
-          {filters.map(f => (
-            <Pressable
-              key={f.key}
-              style={({ pressed }) => [
-                styles.filterChip,
-                {
-                  backgroundColor: filter === f.key ? colors.primary : colors.background,
-                  borderColor: filter === f.key ? colors.primary : colors.border,
-                },
-                pressed && { opacity: 0.8 },
-              ]}
-              onPress={() => setFilter(f.key)}
-            >
-              <Text style={[
-                styles.filterText,
-                { color: filter === f.key ? '#FFFFFF' : colors.muted }
-              ]}>
-                {f.label}
-              </Text>
-            </Pressable>
-          ))}
+      <View style={styles.container}>
+        {/* ─── ヘッダー ─── */}
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.headerTitle, { color: colors.foreground }]}>シナリオ</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.muted }]}>
+            {scenarios.length}ケース収録
+          </Text>
         </View>
+
+        {/* ─── フィルターモード切替 ─── */}
+        <View style={[styles.filterModeRow, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <Pressable
+            style={[styles.filterModeBtn, filterMode === 'difficulty' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+            onPress={() => { setFilterMode('difficulty'); setSelectedDifficulty(null); }}
+          >
+            <Text style={[styles.filterModeBtnText, { color: filterMode === 'difficulty' ? colors.primary : colors.muted }]}>
+              難易度別
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.filterModeBtn, filterMode === 'category' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+            onPress={() => { setFilterMode('category'); setSelectedCategory(null); }}
+          >
+            <Text style={[styles.filterModeBtnText, { color: filterMode === 'category' ? colors.primary : colors.muted }]}>
+              カテゴリ別
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* ─── フィルターチップ ─── */}
+        <View style={[styles.filterChipsRow, { backgroundColor: colors.surface }]}>
+          {filterMode === 'difficulty' ? (
+            <View style={styles.filterChips}>
+              {difficulties.map(d => {
+                const isSelected = selectedDifficulty === d;
+                const count = scenarios.filter(s => s.difficulty === d).length;
+                return (
+                  <Pressable
+                    key={d}
+                    style={[
+                      styles.filterChip,
+                      {
+                        backgroundColor: isSelected ? DIFFICULTY_COLORS[d] : colors.background,
+                        borderColor: isSelected ? DIFFICULTY_COLORS[d] : colors.border,
+                      }
+                    ]}
+                    onPress={() => setSelectedDifficulty(isSelected ? null : d)}
+                  >
+                    <Text style={[styles.filterChipText, { color: isSelected ? '#FFFFFF' : colors.muted }]}>
+                      {DIFFICULTY_LABELS[d]}
+                    </Text>
+                    <View style={[styles.filterChipBadge, { backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : colors.border }]}>
+                      <Text style={[styles.filterChipBadgeText, { color: isSelected ? '#FFFFFF' : colors.muted }]}>{count}</Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={[styles.filterChips, { flexWrap: 'nowrap' }]}>
+                {availableCategories.map(c => {
+                  const isSelected = selectedCategory === c;
+                  const count = scenarios.filter(s => s.category === c).length;
+                  return (
+                    <Pressable
+                      key={c}
+                      style={[
+                        styles.filterChip,
+                        {
+                          backgroundColor: isSelected ? colors.primary : colors.background,
+                          borderColor: isSelected ? colors.primary : colors.border,
+                        }
+                      ]}
+                      onPress={() => setSelectedCategory(isSelected ? null : c)}
+                    >
+                      <Text style={styles.filterChipIcon}>{CATEGORY_ICONS[c]}</Text>
+                      <Text style={[styles.filterChipText, { color: isSelected ? '#FFFFFF' : colors.muted }]}>
+                        {CATEGORY_LABELS[c]}
+                      </Text>
+                      <View style={[styles.filterChipBadge, { backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : colors.border }]}>
+                        <Text style={[styles.filterChipBadgeText, { color: isSelected ? '#FFFFFF' : colors.muted }]}>{count}</Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          )}
+        </View>
+
+        {/* ─── シナリオ一覧 ─── */}
+        <FlatList
+          data={filteredScenarios}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={[styles.emptyText, { color: colors.muted }]}>該当するシナリオがありません</Text>
+            </View>
+          }
+          renderItem={({ item: scenario }) => {
+            const playCount = getPlayCount(scenario.id);
+            const bestScore = getBestScore(scenario.id);
+            const clearCount = getClearCount(scenario.id);
+            const diffColor = DIFFICULTY_COLORS[scenario.difficulty];
+
+            return (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.scenarioCard,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    borderLeftColor: diffColor,
+                  },
+                  pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
+                ]}
+                onPress={() => router.push({ pathname: '/scenario/[id]', params: { id: scenario.id } })}
+              >
+                {/* カード上部 */}
+                <View style={styles.cardTop}>
+                  <Text style={styles.categoryIcon}>{CATEGORY_ICONS[scenario.category]}</Text>
+                  <View style={styles.cardTopInfo}>
+                    <Text style={[styles.cardTitle, { color: colors.foreground }]}>{scenario.title}</Text>
+                    <Text style={[styles.cardSubtitle, { color: colors.muted }]}>{scenario.subtitle}</Text>
+                  </View>
+                  <View style={[styles.diffBadge, { backgroundColor: diffColor + '20', borderColor: diffColor + '60' }]}>
+                    <Text style={[styles.diffBadgeText, { color: diffColor }]}>
+                      {DIFFICULTY_LABELS[scenario.difficulty]}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* 説明文 */}
+                <Text style={[styles.cardDesc, { color: colors.muted }]} numberOfLines={2}>
+                  {scenario.description}
+                </Text>
+
+                {/* カード下部 */}
+                <View style={[styles.cardBottom, { borderTopColor: colors.border }]}>
+                  <View style={styles.cardMetaGroup}>
+                    <Text style={[styles.cardMetaItem, { color: colors.muted }]}>
+                      ⏱ {scenario.estimatedMinutes}分
+                    </Text>
+                    <Text style={[styles.cardMetaItem, { color: colors.muted }]}>
+                      {CATEGORY_ICONS[scenario.category]} {CATEGORY_LABELS[scenario.category]}
+                    </Text>
+                  </View>
+                  <View style={styles.cardStatsGroup}>
+                    {playCount > 0 ? (
+                      <>
+                        <Text style={[styles.cardStatText, { color: colors.muted }]}>{playCount}回</Text>
+                        {clearCount > 0 && (
+                          <Text style={[styles.cardClearText, { color: colors.success }]}>✓ クリア</Text>
+                        )}
+                        {bestScore !== null && (
+                          <Text style={[styles.cardBestScore, { color: colors.primary }]}>{bestScore}pt</Text>
+                        )}
+                      </>
+                    ) : (
+                      <Text style={[styles.cardStatText, { color: colors.muted }]}>未プレイ</Text>
+                    )}
+                  </View>
+                </View>
+              </Pressable>
+            );
+          }}
+        />
       </View>
-
-      <FlatList
-        data={filtered}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item: scenario }) => {
-          const stats = getScenarioStats(scenario.id);
-          const diffColor =
-            scenario.difficulty === 'beginner' ? colors.success :
-            scenario.difficulty === 'intermediate' ? colors.warning : colors.error;
-
-          return (
-            <Pressable
-              style={({ pressed }) => [
-                styles.scenarioCard,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-                pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
-              ]}
-              onPress={() => router.push({ pathname: '/scenario/[id]', params: { id: scenario.id } })}
-            >
-              {/* カードヘッダー */}
-              <View style={styles.cardHeader}>
-                <View style={[styles.categoryBadge, { backgroundColor: diffColor + '20' }]}>
-                  <Text style={styles.categoryEmoji}>{CATEGORY_EMOJIS[scenario.category]}</Text>
-                  <Text style={[styles.categoryText, { color: diffColor }]}>
-                    {CATEGORY_LABELS[scenario.category]}
-                  </Text>
-                </View>
-                <View style={[styles.difficultyBadge, { backgroundColor: diffColor }]}>
-                  <Text style={styles.difficultyText}>{DIFFICULTY_LABELS[scenario.difficulty]}</Text>
-                </View>
-              </View>
-
-              {/* タイトル */}
-              <Text style={[styles.cardTitle, { color: colors.foreground }]}>{scenario.title}</Text>
-              <Text style={[styles.cardSubtitle, { color: colors.muted }]}>{scenario.subtitle}</Text>
-              <Text style={[styles.cardDesc, { color: colors.muted }]} numberOfLines={2}>
-                {scenario.description}
-              </Text>
-
-              {/* 情報バー */}
-              <View style={[styles.infoBar, { borderTopColor: colors.border }]}>
-                <View style={styles.infoItem}>
-                  <Text style={[styles.infoLabel, { color: colors.muted }]}>制限時間</Text>
-                  <Text style={[styles.infoValue, { color: colors.foreground }]}>
-                    {Math.floor(scenario.timeLimit / 60)}分
-                  </Text>
-                </View>
-                <View style={[styles.infoDivider, { backgroundColor: colors.border }]} />
-                <View style={styles.infoItem}>
-                  <Text style={[styles.infoLabel, { color: colors.muted }]}>プレイ数</Text>
-                  <Text style={[styles.infoValue, { color: colors.foreground }]}>{stats.plays}回</Text>
-                </View>
-                <View style={[styles.infoDivider, { backgroundColor: colors.border }]} />
-                <View style={styles.infoItem}>
-                  <Text style={[styles.infoLabel, { color: colors.muted }]}>最高スコア</Text>
-                  <Text style={[styles.infoValue, { color: colors.primary }]}>
-                    {stats.bestScore > 0 ? `${stats.bestScore}pt` : '-'}
-                  </Text>
-                </View>
-                <View style={[styles.infoDivider, { backgroundColor: colors.border }]} />
-                <View style={styles.infoItem}>
-                  <Text style={[styles.infoLabel, { color: colors.muted }]}>クリア</Text>
-                  <Text style={[styles.infoValue, { color: stats.clears > 0 ? colors.success : colors.muted }]}>
-                    {stats.clears > 0 ? `${stats.clears}回` : '-'}
-                  </Text>
-                </View>
-              </View>
-
-              {/* 患者情報プレビュー */}
-              <View style={[styles.patientPreview, { backgroundColor: colors.background }]}>
-                <Text style={[styles.patientLabel, { color: colors.muted }]}>患者：</Text>
-                <Text style={[styles.patientInfo, { color: colors.foreground }]}>
-                  {scenario.patient.name}（{scenario.patient.age}歳・
-                  {scenario.patient.gender === 'female' ? '女性' : '男性'}）
-                </Text>
-              </View>
-
-              <View style={styles.cardFooter}>
-                <Text style={[styles.timeEstimate, { color: colors.muted }]}>
-                  ⏱ 約{scenario.estimatedMinutes}分
-                </Text>
-                <View style={[styles.startButton, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.startButtonText}>詳細を見る →</Text>
-                </View>
-              </View>
-            </Pressable>
-          );
-        }}
-      />
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
+  container: { flex: 1 },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingVertical: 12,
     borderBottomWidth: 1,
   },
-  headerTitle: { fontSize: 24, fontWeight: '800', marginBottom: 4 },
-  headerSubtitle: { fontSize: 13, marginBottom: 12 },
-  filterRow: { flexDirection: 'row', gap: 8 },
-  filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
+  headerTitle: { fontSize: 22, fontWeight: '800' },
+  headerSubtitle: { fontSize: 12, marginTop: 2 },
+  filterModeRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
   },
-  filterText: { fontSize: 13, fontWeight: '600' },
-  listContent: { padding: 16, gap: 16 },
-  scenarioCard: {
-    borderRadius: 20,
-    padding: 16,
+  filterModeBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  filterModeBtnText: { fontSize: 13, fontWeight: '600' },
+  filterChipsRow: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  filterChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterChipIcon: { fontSize: 13 },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderWidth: 1,
+    gap: 4,
+  },
+  filterChipText: { fontSize: 12, fontWeight: '600' },
+  filterChipBadge: {
+    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    minWidth: 18,
+    alignItems: 'center',
+  },
+  filterChipBadgeText: { fontSize: 10, fontWeight: '700' },
+  listContent: { padding: 12, gap: 10, paddingBottom: 24 },
+  emptyState: { padding: 40, alignItems: 'center' },
+  emptyText: { fontSize: 14 },
+  scenarioCard: {
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderLeftWidth: 4,
+    gap: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.06,
     shadowRadius: 6,
-    elevation: 3,
+    elevation: 2,
   },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  categoryBadge: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5, gap: 5 },
-  categoryEmoji: { fontSize: 16 },
-  categoryText: { fontSize: 12, fontWeight: '700' },
-  difficultyBadge: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
-  difficultyText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
-  cardTitle: { fontSize: 22, fontWeight: '800', marginBottom: 4 },
-  cardSubtitle: { fontSize: 14, marginBottom: 8 },
-  cardDesc: { fontSize: 13, lineHeight: 19, marginBottom: 12 },
-  infoBar: {
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  categoryIcon: { fontSize: 28 },
+  cardTopInfo: { flex: 1 },
+  cardTitle: { fontSize: 15, fontWeight: '700', marginBottom: 1 },
+  cardSubtitle: { fontSize: 11 },
+  diffBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 },
+  diffBadgeText: { fontSize: 11, fontWeight: '700' },
+  cardDesc: { fontSize: 12, lineHeight: 18 },
+  cardBottom: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     borderTopWidth: 1,
-    paddingTop: 12,
-    marginBottom: 12,
+    paddingTop: 8,
   },
-  infoItem: { flex: 1, alignItems: 'center' },
-  infoLabel: { fontSize: 10, marginBottom: 3 },
-  infoValue: { fontSize: 14, fontWeight: '700' },
-  infoDivider: { width: 1, marginHorizontal: 4 },
-  patientPreview: {
-    flexDirection: 'row',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 12,
-  },
-  patientLabel: { fontSize: 12, fontWeight: '600' },
-  patientInfo: { fontSize: 12, flex: 1 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  timeEstimate: { fontSize: 13 },
-  startButton: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
-  startButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  cardMetaGroup: { flexDirection: 'row', gap: 10 },
+  cardMetaItem: { fontSize: 11 },
+  cardStatsGroup: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  cardStatText: { fontSize: 11 },
+  cardClearText: { fontSize: 11, fontWeight: '700' },
+  cardBestScore: { fontSize: 11, fontWeight: '700' },
 });

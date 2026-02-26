@@ -4,11 +4,18 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/use-colors';
+import { DIFFICULTY_LABELS, CATEGORY_LABELS } from '@/types/game';
+import type { Category } from '@/types/game';
 
-const DIFFICULTY_LABELS: Record<string, string> = {
-  beginner: '初級',
-  intermediate: '中級',
-  advanced: '上級',
+const CATEGORY_ICONS: Record<Category, string> = {
+  endocrine:     '🩸',
+  respiratory:   '🫁',
+  cardiovascular:'❤️',
+  neurological:  '🧠',
+  infection:     '🦠',
+  trauma:        '🩹',
+  allergy:       '⚠️',
+  other:         '📋',
 };
 
 export default function ScenarioDetailScreen() {
@@ -33,8 +40,8 @@ export default function ScenarioDetailScreen() {
   }
 
   const diffColor =
-    scenario.difficulty === 'beginner' ? colors.success :
-    scenario.difficulty === 'intermediate' ? colors.warning : colors.error;
+    scenario.difficulty === 'beginner' ? '#2E9E6B' :
+    scenario.difficulty === 'intermediate' ? '#E8A020' : '#D94040';
 
   const handleStart = () => {
     startScenario(scenario.id);
@@ -64,8 +71,10 @@ export default function ScenarioDetailScreen() {
         <View style={[styles.heroSection, { backgroundColor: diffColor + '15' }]}>
           <View style={styles.heroHeader}>
             <Text style={styles.heroEmoji}>
-              {scenario.category === 'endocrine' ? '🩸' :
-               scenario.category === 'respiratory' ? '🫁' : '❤️'}
+              {CATEGORY_ICONS[scenario.category as Category]}
+            </Text>
+            <Text style={[styles.categoryLabel, { color: colors.muted }]}>
+              {CATEGORY_LABELS[scenario.category as Category]}
             </Text>
             <View style={[styles.diffBadge, { backgroundColor: diffColor }]}>
               <Text style={styles.diffBadgeText}>{DIFFICULTY_LABELS[scenario.difficulty]}</Text>
@@ -239,7 +248,8 @@ const styles = StyleSheet.create({
   navTitle: { fontSize: 17, fontWeight: '700' },
   scrollContent: { paddingBottom: 32 },
   heroSection: { padding: 20, marginBottom: 0 },
-  heroHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  heroHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 8 },
+  categoryLabel: { flex: 1, fontSize: 13, fontWeight: '600' },
   heroEmoji: { fontSize: 48 },
   diffBadge: { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 6 },
   diffBadgeText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },

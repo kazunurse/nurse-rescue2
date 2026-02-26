@@ -20,6 +20,7 @@ const initialGameState: GameState = {
   totalScore: 0,
   criticalActionsCompleted: [],
   result: null,
+  revealedLabData: [],
 };
 
 // ─── アクション型 ─────────────────────────────────────────────────────────────
@@ -30,6 +31,7 @@ type GameAction =
   | { type: 'TICK_ELAPSED'; delta: number }
   | { type: 'TICK_PHASE'; delta: number }
   | { type: 'FINISH_GAME'; result: GameResult }
+  | { type: 'REVEAL_LAB_DATA'; actionId: string }
   | { type: 'RESET' };
 
 // ─── リデューサー ─────────────────────────────────────────────────────────────
@@ -65,6 +67,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ? [...state.criticalActionsCompleted, action.action.id]
         : state.criticalActionsCompleted;
 
+      // 検査データ開示チェック
+      const newRevealedLabData = [...state.revealedLabData];
+      if (!newRevealedLabData.includes(action.action.id)) {
+        newRevealedLabData.push(action.action.id);
+      }
+
       return {
         ...state,
         patientState: newPatientState,
@@ -72,6 +80,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         totalScore: Math.max(0, state.totalScore + action.action.score),
         criticalActionsCompleted: newCriticalCompleted,
         phaseTimeRemaining: Math.max(0, state.phaseTimeRemaining - action.action.timeRequired),
+        revealedLabData: newRevealedLabData,
       };
     }
 
@@ -90,6 +99,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'FINISH_GAME':
       return { ...state, phase: 'finished', result: action.result };
+
+    case 'REVEAL_LAB_DATA':
+      return {
+        ...state,
+        revealedLabData: state.revealedLabData.includes(action.actionId)
+          ? state.revealedLabData
+          : [...state.revealedLabData, action.actionId],
+      };
 
     case 'RESET':
       return initialGameState;
@@ -238,16 +255,24 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const nextPhaseId = currentPhase.nextPhase.onCriticalAction;
       const nextPhase = scenario.phases.find(p => p.id === nextPhaseId);
       if (nextPhase) {
-        if (['phase_success', 'phase_partial_success', 'phase_fail',
-             'phase_success_pe', 'phase_partial_pe', 'phase_fail_pe',
-             'phase_success_mi', 'phase_partial_mi', 'phase_fail_mi'].includes(nextPhaseId) ||
-            nextPhase.description === 'success' || nextPhase.description === 'fail' || nextPhase.description === 'partial_success') {
+        if (nextPhase.description === 'success' || nextPhase.description === 'fail' || nextPhase.description === 'partial_success') {
           stopTimers();
           const result: GameResult =
             nextPhase.description === 'success' ? 'success' :
             nextPhase.description === 'partial_success' ? 'partial_success' : 'fail';
           setTimeout(() => {
             dispatch({ type: 'FINISH_GAME', result });
+            const record: HistoryRecord = {
+              id: `${Date.now()}`,
+              scenarioId: state.scenarioId!,
+              scenarioTitle: scenario.title,
+              playedAt: Date.now(),
+              result,
+              totalScore: state.totalScore + (action.score || 0),
+              elapsedTime: state.elapsedTime,
+              actionCount: state.actionLog.length + 1,
+            };
+            saveHistory(record);
           }, 500);
         } else {
           setTimeout(() => {
@@ -266,7 +291,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }, 2000);
       }
     }
-  }, [scenarios, stopTimers, startTimers]);
+  }, [scenarios, stopTimers, startTimers, saveHistory]);
 
   const finishGame = useCallback((result: GameResult) => {
     stopTimers();

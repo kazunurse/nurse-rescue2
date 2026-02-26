@@ -186,6 +186,13 @@ export default function ResultScreen() {
               📖 {scenario.explanation.evidence}
             </Text>
           </View>
+          {scenario.explanation.evidenceUrl && (
+            <View style={[styles.evidenceUrlBadge, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[styles.evidenceUrlText, { color: colors.muted }]}>
+                🔗 参考: {scenario.explanation.evidenceUrl}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* ─── アクションボタン ─── */}
@@ -314,8 +321,10 @@ const styles = StyleSheet.create({
   keyPointItem: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   keyPointBullet: { fontSize: 16, fontWeight: '700', lineHeight: 22 },
   keyPointText: { fontSize: 13, lineHeight: 22, flex: 1 },
-  evidenceBadge: { borderRadius: 12, padding: 12 },
+  evidenceBadge: { borderRadius: 12, padding: 12, marginBottom: 8 },
   evidenceText: { fontSize: 12, lineHeight: 18 },
+  evidenceUrlBadge: { borderRadius: 10, padding: 10, borderWidth: 1 },
+  evidenceUrlText: { fontSize: 11, lineHeight: 16 },
   actionButtons: { paddingHorizontal: 16, gap: 12 },
   primaryButton: {
     borderRadius: 16,

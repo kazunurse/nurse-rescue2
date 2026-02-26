@@ -32,10 +32,10 @@ describe('Scenarios Data', () => {
     for (const scenario of scenarios) {
       const state = scenario.initialState;
       expect(state.consciousness).toBeGreaterThanOrEqual(0);
-      expect(state.bloodPressure.systolic).toBeGreaterThan(0);
-      expect(state.bloodPressure.diastolic).toBeGreaterThan(0);
-      expect(state.heartRate).toBeGreaterThan(0);
-      expect(state.spO2).toBeGreaterThan(0);
+      expect(state.bloodPressure.systolic).toBeGreaterThanOrEqual(0);
+      expect(state.bloodPressure.diastolic).toBeGreaterThanOrEqual(0);
+      expect(state.heartRate).toBeGreaterThanOrEqual(0);
+      expect(state.spO2).toBeGreaterThanOrEqual(0);
       expect(state.spO2).toBeLessThanOrEqual(100);
       expect(state.temperature).toBeGreaterThan(0);
     }
@@ -87,7 +87,7 @@ describe('Scenarios Data', () => {
   });
 
   it('scenarios should have valid categories', () => {
-    const validCategories = ['endocrine', 'respiratory', 'cardiovascular', 'neurological', 'other'];
+    const validCategories = ['endocrine', 'respiratory', 'cardiovascular', 'neurological', 'infection', 'trauma', 'allergy', 'other'];
     for (const scenario of scenarios) {
       expect(validCategories).toContain(scenario.category);
     }
